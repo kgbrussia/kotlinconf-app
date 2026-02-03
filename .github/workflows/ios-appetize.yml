@@ -16,6 +16,9 @@ on:
         type: string
         required: true
         default: iPhone 16
+  push:
+    branches:
+      - main
 
 concurrency:
   group: ios-appetize
