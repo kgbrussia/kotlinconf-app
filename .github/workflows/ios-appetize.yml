@@ -1,0 +1,112 @@
+name: iOS (Appetize)
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Xcode build configuration
+        type: choice
+        required: true
+        default: Debug
+        options:
+          - Debug
+          - Release
+      simulator:
+        description: iOS Simulator device name
+        type: string
+        required: true
+        default: iPhone 16
+
+concurrency:
+  group: ios-appetize
+  cancel-in-progress: true
+
+jobs:
+  build-and-upload:
+    name: Build iOS Simulator app & upload to Appetize
+    runs-on: macOS-latest
+    env:
+      APPETIZE_API_TOKEN: ${{ secrets.APPETIZE_API_TOKEN }}
+      APPETIZE_APP_ID: ${{ secrets.APPETIZE_APP_ID }}
+      DERIVED_DATA: ${{ runner.temp }}/DerivedData
+      ZIP_PATH: ${{ runner.temp }}/KotlinConf.zip
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - name: Select Xcode (if present)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -d "/Applications/Xcode_16.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          fi
+          xcodebuild -version
+
+      - name: Build iOS Simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd iosApp
+          xcodebuild \
+            -workspace KotlinConf.xcworkspace \
+            -scheme KotlinConfAppScheme \
+            -configuration "${{ inputs.configuration }}" \
+            -derivedDataPath "${DERIVED_DATA}" \
+            -destination "platform=iOS Simulator,OS=latest,name=${{ inputs.simulator }}" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package .app into zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="${DERIVED_DATA}/Build/Products/${{ inputs.configuration }}-iphonesimulator/KotlinConf.app"
+          if [ ! -d "${APP_PATH}" ]; then
+            echo "Expected .app not found at: ${APP_PATH}"
+            echo "Available products:"
+            ls -la "${DERIVED_DATA}/Build/Products" || true
+            exit 1
+          fi
+          ditto -c -k --sequesterRsrc --keepParent "${APP_PATH}" "${ZIP_PATH}"
+          ls -lah "${ZIP_PATH}"
+
+      - name: Upload artifact (zip)
+        uses: actions/upload-artifact@v4
+        with:
+          name: KotlinConf-iOS-simulator
+          path: ${{ runner.temp }}/KotlinConf.zip
+          if-no-files-found: error
+
+      - name: Upload to Appetize (update existing app)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${APPETIZE_API_TOKEN}" ] || [ -z "${APPETIZE_APP_ID}" ]; then
+            echo "Missing APPETIZE_API_TOKEN and/or APPETIZE_APP_ID secrets"
+            exit 1
+          fi
+
+          curl --fail --silent --show-error \
+            -X PUT "https://api.appetize.io/v1/apps/${APPETIZE_APP_ID}" \
+            -u "${APPETIZE_API_TOKEN}:" \
+            -F "file=@${ZIP_PATH}"
+
+      - name: Summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "### Appetize"
+            echo ""
+            echo "- App: https://appetize.io/apps/${APPETIZE_APP_ID}"
+            echo "- Build configuration: \`${{ inputs.configuration }}\`"
+            echo "- Simulator: \`${{ inputs.simulator }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
