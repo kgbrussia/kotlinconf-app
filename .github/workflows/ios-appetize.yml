@@ -31,6 +31,8 @@ jobs:
     env:
       APPETIZE_API_TOKEN: ${{ secrets.APPETIZE_API_TOKEN }}
       APPETIZE_APP_ID: ${{ secrets.APPETIZE_APP_ID }}
+      CONFIGURATION: ${{ inputs.configuration || 'Debug' }}
+      SIMULATOR: ${{ inputs.simulator || 'iPhone 16' }}
       DERIVED_DATA: ${{ github.workspace }}/build/appetize/DerivedData
       ZIP_PATH: ${{ github.workspace }}/build/appetize/KotlinConf.zip
     steps:
@@ -60,9 +62,9 @@ jobs:
           xcodebuild \
             -workspace KotlinConf.xcworkspace \
             -scheme KotlinConfAppScheme \
-            -configuration "${{ inputs.configuration }}" \
+            -configuration "${CONFIGURATION}" \
             -derivedDataPath "${DERIVED_DATA}" \
-            -destination "platform=iOS Simulator,OS=latest,name=${{ inputs.simulator }}" \
+            -destination "platform=iOS Simulator,OS=latest,name=${SIMULATOR}" \
             CODE_SIGNING_ALLOWED=NO \
             build
 
@@ -70,7 +72,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP_PATH="${DERIVED_DATA}/Build/Products/${{ inputs.configuration }}-iphonesimulator/KotlinConf.app"
+          APP_PATH="${DERIVED_DATA}/Build/Products/${CONFIGURATION}-iphonesimulator/KotlinConf.app"
           if [ ! -d "${APP_PATH}" ]; then
             echo "Expected .app not found at: ${APP_PATH}"
             echo "Available products:"
@@ -109,7 +111,7 @@ jobs:
             echo "### Appetize"
             echo ""
             echo "- App: https://appetize.io/apps/${APPETIZE_APP_ID}"
-            echo "- Build configuration: \`${{ inputs.configuration }}\`"
-            echo "- Simulator: \`${{ inputs.simulator }}\`"
+            echo "- Build configuration: \`${CONFIGURATION}\`"
+            echo "- Simulator: \`${SIMULATOR}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
