@@ -31,3 +31,18 @@ To build the project locally:
    * Desktop: `./gradlew :shared:jvmRunHot -DmainClass=org.jetbrains.kotlinconf.MainKt`
    * Web: `./gradlew :shared:wasmJsBrowserDevelopmentRun `
    * Backend: `./gradlew :backend:run`
+
+## Appetize (iOS Simulator build)
+
+This repository contains a GitHub Actions workflow that can be started manually from the UI to build the iOS Simulator app and upload it to Appetize.
+
+### Setup
+
+1. Create an app in Appetize and copy its app id.
+2. In GitHub, add the following repository secrets:
+   - `APPETIZE_API_TOKEN`
+   - `APPETIZE_APP_ID`
+
+### Run
+
+Go to GitHub Actions and run the workflow **"iOS (Appetize)"**. The run summary will contain a link like `https://appetize.io/apps/<APPETIZE_APP_ID>`.
