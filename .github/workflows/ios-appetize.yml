@@ -31,8 +31,8 @@ jobs:
     env:
       APPETIZE_API_TOKEN: ${{ secrets.APPETIZE_API_TOKEN }}
       APPETIZE_APP_ID: ${{ secrets.APPETIZE_APP_ID }}
-      DERIVED_DATA: ${{ runner.temp }}/DerivedData
-      ZIP_PATH: ${{ runner.temp }}/KotlinConf.zip
+      DERIVED_DATA: ${{ github.workspace }}/build/appetize/DerivedData
+      ZIP_PATH: ${{ github.workspace }}/build/appetize/KotlinConf.zip
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: KotlinConf-iOS-simulator
-          path: ${{ runner.temp }}/KotlinConf.zip
+          path: ${{ github.workspace }}/build/appetize/KotlinConf.zip
           if-no-files-found: error
 
       - name: Upload to Appetize (update existing app)

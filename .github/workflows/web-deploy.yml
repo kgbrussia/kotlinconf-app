@@ -1,9 +1,6 @@
 name: Publish Application on GitHub Pages
 on:
-  push:
-    branches:
-      - main
-      - web
+  workflow_dispatch:
 
 jobs:
   # Build job
